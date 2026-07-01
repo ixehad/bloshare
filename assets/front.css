@@ -1,0 +1,115 @@
+/* Bloshare — front-end styles */
+
+.bls-row {
+    margin: 20px 0;
+}
+
+.bls-row-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: #94a3b8;
+    margin-bottom: 10px;
+}
+
+.bls-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+/* Base button */
+.bls-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    color: #fff;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    line-height: 1;
+    transition: opacity 0.15s ease, transform 0.1s ease;
+    white-space: nowrap;
+}
+
+.bls-btn:hover  { opacity: 0.85; color: #fff; text-decoration: none; }
+.bls-btn:active { transform: scale(0.96); }
+
+/* Icon sizing inside buttons */
+.bls-btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.bls-btn-icon svg {
+    display: block;
+}
+
+/* ── Style: text only ─────────────────────────────────────────────────── */
+.bls-btn-style-text {
+    padding: 8px 16px;
+    font-size: 13px;
+}
+
+.bls-btn-style-text .bls-btn-icon { display: none; }
+
+/* ── Style: icon only ─────────────────────────────────────────────────── */
+.bls-btn-style-icon {
+    padding: 9px;
+    font-size: 0; /* hide any accidental text */
+}
+
+.bls-btn-style-icon .bls-btn-icon { width: 18px; height: 18px; }
+.bls-btn-style-icon .bls-btn-icon svg { width: 18px; height: 18px; }
+.bls-btn-style-icon .bls-btn-label { display: none; }
+
+/* ── Style: icon + text ───────────────────────────────────────────────── */
+.bls-btn-style-icon_text {
+    padding: 8px 14px;
+    font-size: 13px;
+}
+
+.bls-btn-style-icon_text .bls-btn-icon { width: 16px; height: 16px; }
+.bls-btn-style-icon_text .bls-btn-icon svg { width: 16px; height: 16px; }
+
+/* ── Shapes ───────────────────────────────────────────────────────────── */
+.bls-shape-pill    .bls-btn { border-radius: 999px; }
+.bls-shape-rounded .bls-btn { border-radius: 6px; }
+.bls-shape-square  .bls-btn { border-radius: 0; }
+
+/* Apply shape to rows directly so shortcode-placed rows also pick it up */
+.bls-row.bls-shape-pill    .bls-btn { border-radius: 999px; }
+.bls-row.bls-shape-rounded .bls-btn { border-radius: 6px; }
+.bls-row.bls-shape-square  .bls-btn { border-radius: 0; }
+
+/* ── Copy link button ─────────────────────────────────────────────────── */
+.bls-btn-copy {
+    background: #374151 !important;
+}
+
+.bls-btn-copy.bls-copied {
+    background: #16a34a !important;
+}
+
+/* ── Admin network icon preview (settings page only) ─────────────────── */
+.bls-network-icon svg {
+    width: 18px;
+    height: 18px;
+    vertical-align: middle;
+}
+
+/* ── Responsive ───────────────────────────────────────────────────────── */
+@media ( max-width: 480px ) {
+    .bls-buttons { gap: 6px; }
+
+    .bls-btn-style-text     { padding: 7px 12px; font-size: 12px; }
+    .bls-btn-style-icon     { padding: 8px; }
+    .bls-btn-style-icon_text { padding: 7px 11px; font-size: 12px; }
+}
