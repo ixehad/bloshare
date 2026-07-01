@@ -1,0 +1,119 @@
+/* Bloshare — admin styles */
+
+.bls-settings-wrap h1 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.bls-title-icon {
+    font-size: 26px;
+    width: 26px;
+    height: 26px;
+    color: #2271b1;
+}
+
+/* ── Tabs ─────────────────────────────────────────────────────────────── */
+.bls-tabs {
+    margin: 16px 0 0;
+}
+
+/* ── Section headings ─────────────────────────────────────────────────── */
+.bls-section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1d2327;
+    border-bottom: 1px solid #dcdcde;
+    padding-bottom: 6px;
+    margin: 24px 0 4px;
+}
+
+/* ── Live preview box ─────────────────────────────────────────────────── */
+.bls-preview-box {
+    background: #fff;
+    border: 1px solid #dcdcde;
+    border-radius: 4px;
+    padding: 16px 20px 20px;
+    margin: 16px 0 8px;
+    max-width: 860px;
+}
+
+.bls-preview-box .bls-row { margin: 10px 0 0; }
+
+/* ── Warning notice ───────────────────────────────────────────────────── */
+.bls-notice {
+    margin-top: 10px;
+    padding: 10px 14px;
+    border-radius: 4px;
+    font-size: 13px;
+    line-height: 1.5;
+    max-width: 600px;
+}
+
+.bls-notice-warn {
+    background: #fff8e5;
+    border-left: 4px solid #dba617;
+    color: #4a3800;
+}
+
+.bls-notice-warn code {
+    background: #fef3cd;
+    padding: 1px 4px;
+    border-radius: 3px;
+}
+
+/* ── Shortcode reference box ──────────────────────────────────────────── */
+.bls-shortcode-box {
+    background: #f6f7f7;
+    border: 1px solid #dcdcde;
+    border-radius: 4px;
+    padding: 14px 18px;
+    margin: 24px 0 16px;
+    max-width: 600px;
+}
+
+.bls-shortcode-box h3 {
+    margin: 0 0 6px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.bls-shortcode-box code {
+    display: inline-block;
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 3px;
+    padding: 4px 10px;
+    font-size: 13px;
+    margin: 4px 0 8px;
+}
+
+.bls-shortcode-box p.description { margin-top: 4px; }
+
+/* ── Toggle label ─────────────────────────────────────────────────────── */
+.bls-toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+}
+
+/* ── Form table ───────────────────────────────────────────────────────── */
+.bls-settings-wrap .form-table th { width: 220px; }
+.bls-settings-wrap .form-table td { padding: 10px 10px 10px 0; }
+
+/* ── Copy link preview dim ────────────────────────────────────────────── */
+.bls-preview-box .bls-btn-copy[disabled] {
+    opacity: 0.55;
+    cursor: default;
+}
+
+/* ── Network icon in social table ─────────────────────────────────────── */
+.bls-network-icon {
+    display: inline-flex;
+    vertical-align: middle;
+}
+.bls-network-icon svg {
+    width: 18px;
+    height: 18px;
+}
