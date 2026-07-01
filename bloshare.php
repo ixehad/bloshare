@@ -3,7 +3,7 @@
  * Plugin Name:       Bloshare – AI Summarize & Social Share
  * Plugin URI:        https://github.com/ixehad/bloshare
  * Description:       Adds "Summarize with AI" buttons (ChatGPT, Claude, Perplexity, Grok, Google) and social share buttons (Facebook, X, WhatsApp, LinkedIn, Telegram, Pinterest) to blog posts. Fully configurable — no coding required.
- * Version:           1.2.0
+ * Version:           1.0.0
  * Requires at least: 5.6
  * Requires PHP:      7.2
  * Author:            Jehadul Islam
@@ -29,6 +29,7 @@ require_once KAS_PATH . 'includes/class-bls-loader.php';
  * Boot the plugin.
  */
 function bls_init_plugin() {
+    load_plugin_textdomain( 'bloshare', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
     BLS_Settings::instance();
     BLS_Loader::instance();
 }
