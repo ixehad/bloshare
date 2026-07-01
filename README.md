@@ -81,8 +81,8 @@ Found at **Bloshare** in your WordPress dashboard sidebar:
 ## File Structure
 
 ```
-qai-social-share/
-├── qai-social-share.php          # Main plugin bootstrap
+bloshare/
+├── bloshare.php                  # Main plugin bootstrap
 ├── readme.txt                    # WordPress.org readme
 ├── assets/                       # WP.org banner + icon assets
 │   ├── banner-772x250.png
