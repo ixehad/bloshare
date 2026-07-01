@@ -1,0 +1,569 @@
+<?php
+/**
+ * Settings: two-tab admin UI (AI Summarize + Social Share).
+ * Option key stays "bls_settings" so existing saves carry forward.
+ */
+
+if ( ! defined( 'ABSPATH' ) ) exit;
+
+class BLS_Settings {
+
+    private static $instance = null;
+    private $page_hook        = '';
+    private $ai_hook          = '';
+    private $social_hook      = '';
+
+    public static function instance() {
+        if ( null === self::$instance ) self::$instance = new self();
+        return self::$instance;
+    }
+
+    private function __construct() {
+        add_action( 'admin_menu',            array( $this, 'add_menu_pages' ) );
+        add_action( 'admin_init',            array( $this, 'register_settings' ) );
+        add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
+    }
+
+    /* -----------------------------------------------------------------------
+     * Network definitions
+     * -------------------------------------------------------------------- */
+
+    public static function get_network_definitions() {
+        return array(
+            // AI tools
+            // Icons: Bootstrap Icons (MIT) and Simple Icons (CC0)
+            'chatgpt'    => array( 'group' => 'ai',     'label' => 'ChatGPT',    'color' => '#74AA9C', 'url_pattern' => 'https://chatgpt.com/?prompt={prompt}',                              'icon' => '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91 6.046 6.046 0 0 0-6.51-2.9A6.065 6.065 0 0 0 4.981 4.18a5.985 5.985 0 0 0-3.998 2.9 6.046 6.046 0 0 0 .743 7.097 5.98 5.98 0 0 0 .51 4.911 6.051 6.051 0 0 0 6.515 2.9A5.985 5.985 0 0 0 13.26 24a6.056 6.056 0 0 0 5.772-4.206 5.99 5.99 0 0 0 3.997-2.9 6.056 6.056 0 0 0-.747-7.073zM13.26 22.43a4.476 4.476 0 0 1-2.876-1.04l.141-.081 4.779-2.758a.795.795 0 0 0 .392-.681v-6.737l2.02 1.168a.071.071 0 0 1 .038.052v5.583a4.504 4.504 0 0 1-4.494 4.494zM3.6 18.304a4.47 4.47 0 0 1-.535-3.014l.142.085 4.783 2.759a.771.771 0 0 0 .78 0l5.843-3.369v2.332a.08.08 0 0 1-.032.067L9.74 19.95a4.5 4.5 0 0 1-6.14-1.646zM2.34 7.896a4.485 4.485 0 0 1 2.366-1.973V11.6a.766.766 0 0 0 .388.676l5.815 3.355-2.02 1.168a.076.076 0 0 1-.071 0L4.3 14.11A4.5 4.5 0 0 1 2.34 7.896zm16.597 3.855l-5.843-3.387L15.114 7.2a.076.076 0 0 1 .071 0l4.518 2.606a4.504 4.504 0 0 1-.676 8.137v-5.678a.79.79 0 0 0-.39-.514zm2.01-3.023l-.141-.085-4.774-2.782a.776.776 0 0 0-.785 0L9.409 9.23V6.897a.066.066 0 0 1 .028-.061l4.512-2.602a4.495 4.495 0 0 1 6.59 4.66zm-12.64 4.135l-2.02-1.164a.08.08 0 0 1-.038-.057V6.075a4.495 4.495 0 0 1 7.375-3.453l-.142.08L8.704 5.46a.795.795 0 0 0-.393.681zm1.097-2.365l2.602-1.5 2.607 1.5v2.999l-2.597 1.5-2.607-1.5z"/></svg>' ),
+            'claude'     => array( 'group' => 'ai',     'label' => 'Claude',     'color' => '#DA7756', 'url_pattern' => 'https://claude.ai/new?q={prompt}',                                   'icon' => '<svg viewBox="0 0 24 24" fill="currentColor"><path d="m3.127 10.604 3.135-1.76.053-.153-.053-.085H6.11l-.525-.032-1.791-.048-1.554-.065-1.505-.08-.38-.081L0 7.832l.036-.234.32-.214.455.04 1.009.069 1.513.105 1.097.064 1.626.17h.259l.036-.105-.089-.065-.068-.064-1.566-1.062-1.695-1.121-.887-.646-.48-.327-.243-.306-.104-.67.435-.48.585.04.15.04.593.456 1.267.981 1.654 1.218.242.202.097-.068.012-.049-.109-.181-.9-1.626-.96-1.655-.428-.686-.113-.411a2 2 0 0 1-.068-.484l.496-.674L4.446 0l.662.089.279.242.411.94.666 1.48 1.033 2.014.302.597.162.553.06.17h.105v-.097l.085-1.134.157-1.392.154-1.792.052-.504.25-.605.497-.327.387.186.319.456-.045.294-.19 1.23-.37 1.93-.243 1.29h.142l.161-.16.654-.868 1.097-1.372.484-.545.565-.601.363-.287h.686l.505.751-.226.775-.707.895-.585.759-.839 1.13-.524.904.048.072.125-.012 1.897-.403 1.024-.186 1.223-.21.553.258.06.263-.218.536-1.307.323-1.533.307-2.284.54-.028.02.032.04 1.029.862 1.439 1.512.9 1.04.399.633-.169.703-.51.336-.727-.16-.512-.421-.879-.898-1.166-1.128-.98-.91-.384-.477h-.097l-.08.048-.048.096.016.162.31.81.506 1.936.298 1.165.12.657-.142.469-.381.262-.456-.096-.298-.323-.18-.576-.263-1.165-.381-1.516-.205-.863-.06-.192h-.048l-.1.14-.932 1.375-1.2 1.664-.88 1.12-.72.784-.592.363-.688-.16-.274-.382.105-.527.371-.504.768-.975 1.232-1.712.704-1.04.607-.975.095-.19-.063-.097z"/></svg>' ),
+            'perplexity' => array( 'group' => 'ai',     'label' => 'Perplexity', 'color' => '#20B8CD', 'url_pattern' => 'https://www.perplexity.ai/search/new?q={prompt}',                    'icon' => '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M22.3977 7.0896h-2.3106V.0676l-7.5094 6.3542V.1577h-1.1554v6.1966L4.4904 0v7.0896H1.6023v10.3976h2.8882V24l6.932-6.3591v6.2005h1.1554v-6.0469l6.9318 6.1807v-6.4879h2.8882V7.0896zm-3.4657-4.531v4.531h-5.355l5.355-4.531zm-13.2862.0676 4.8691 4.4634H5.6458V2.6262zM2.7576 16.332V8.245h7.8476l-6.1149 6.1147v1.9723H2.7576zm2.8882 5.0404v-3.8852h.0001v-2.6488l5.7763-5.7764v7.0111l-5.7764 5.2993zm12.7086.0248-5.7766-5.1509V9.0618l5.7766 5.7766v6.5588zm2.8882-5.0652h-1.733v-1.9723L13.3948 8.245h7.8478v8.087z"/></svg>' ),
+            'grok'       => array( 'group' => 'ai',     'label' => 'Grok',       'color' => '#1a1a1a', 'url_pattern' => 'https://x.com/i/grok?text={prompt}',                                  'icon' => '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>' ),
+            'google'     => array( 'group' => 'ai',     'label' => 'Google',     'color' => '#4285F4', 'url_pattern' => 'https://www.google.com/search?udm=50&q={prompt}',                    'icon' => '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"/></svg>' ),
+            // Social networks
+            'facebook'   => array( 'group' => 'social', 'label' => 'Facebook',   'color' => '#1877F2', 'url_pattern' => 'https://www.facebook.com/sharer/sharer.php?u={url}',                 'icon' => '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>' ),
+            'twitter'    => array( 'group' => 'social', 'label' => 'X',          'color' => '#000000', 'url_pattern' => 'https://twitter.com/intent/tweet?url={url}&text={title}',            'icon' => '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>' ),
+            'whatsapp'   => array( 'group' => 'social', 'label' => 'WhatsApp',   'color' => '#25D366', 'url_pattern' => 'https://api.whatsapp.com/send?text={title}%20{url}',                  'icon' => '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>' ),
+            'linkedin'   => array( 'group' => 'social', 'label' => 'LinkedIn',   'color' => '#0A66C2', 'url_pattern' => 'https://www.linkedin.com/sharing/share-offsite/?url={url}',           'icon' => '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>' ),
+            'telegram'   => array( 'group' => 'social', 'label' => 'Telegram',   'color' => '#26A5E4', 'url_pattern' => 'https://t.me/share/url?url={url}&text={title}',                       'icon' => '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>' ),
+            'pinterest'  => array( 'group' => 'social', 'label' => 'Pinterest',  'color' => '#E60023', 'url_pattern' => 'https://pinterest.com/pin/create/button/?url={url}&description={title}', 'icon' => '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12c0 5.084 3.163 9.426 7.627 11.174-.105-.949-.2-2.405.042-3.441.218-.937 1.407-5.965 1.407-5.965s-.359-.719-.359-1.782c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738a.36.36 0 0 1 .083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.632-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146C9.57 23.812 10.763 24 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0z"/></svg>' ),
+        );
+    }
+
+    /* -----------------------------------------------------------------------
+     * Defaults
+     * -------------------------------------------------------------------- */
+
+    public static function defaults() {
+        // Default ON: ChatGPT, Claude, Perplexity, Google (AI) + Facebook, X, WhatsApp, LinkedIn (Social)
+        // Everything else defaults to OFF so new installs aren't overwhelming
+        $default_on = array( 'chatgpt', 'claude', 'perplexity', 'google', 'facebook', 'twitter', 'whatsapp', 'linkedin' );
+        $networks   = array();
+        foreach ( self::get_network_definitions() as $key => $def ) {
+            $networks[ $key ] = in_array( $key, $default_on, true ) ? 1 : 0;
+        }
+        return array(
+            'enabled_networks'     => $networks,
+            // AI row
+            'ai_enabled'           => 1,
+            'ai_position'          => 'before_content',
+            'ai_button_style'      => 'text',        // text | icon | icon_text
+            'ai_label'             => 'Summarize with',
+            'ai_prompt_template'   => 'Analyze and summarize the key insights from {url}',
+            // Social row
+            'social_enabled'       => 1,
+            'social_position'      => 'after_content',
+            'social_button_style'  => 'icon_text',   // text | icon | icon_text
+            'social_label'         => 'Share this article',
+            'show_copy_link'       => 1,
+            // Shared
+            'open_new_tab'         => 1,
+            'button_shape'         => 'pill',        // pill | rounded | square
+        );
+    }
+
+    /* -----------------------------------------------------------------------
+     * get_settings: safe merge with type guards
+     * -------------------------------------------------------------------- */
+
+    public function get_settings() {
+        $saved    = get_option( 'bls_settings', array() );
+        $defaults = self::defaults();
+
+        if ( ! is_array( $saved ) ) return $defaults;
+
+        $merged = wp_parse_args( $saved, $defaults );
+
+        if ( isset( $saved['enabled_networks'] ) && is_array( $saved['enabled_networks'] ) ) {
+            $merged['enabled_networks'] = wp_parse_args( $saved['enabled_networks'], $defaults['enabled_networks'] );
+        } else {
+            $merged['enabled_networks'] = $defaults['enabled_networks'];
+        }
+
+        $string_keys = array( 'ai_position', 'ai_button_style', 'ai_label', 'ai_prompt_template',
+                              'social_position', 'social_button_style', 'social_label', 'button_shape' );
+        foreach ( $string_keys as $k ) {
+            if ( ! is_string( $merged[ $k ] ) ) $merged[ $k ] = $defaults[ $k ];
+        }
+
+        return $merged;
+    }
+
+    /* -----------------------------------------------------------------------
+     * Admin menu
+     * -------------------------------------------------------------------- */
+
+    public function add_menu_pages() {
+        // Parent menu (no content of its own — redirects to AI tab)
+        $this->page_hook = add_menu_page(
+            'Bloshare',
+            'Bloshare',
+            'manage_options',
+            'bloshare',
+            array( $this, 'render_ai_page' ),
+            'dashicons-share',
+            30
+        );
+
+        add_submenu_page(
+            'bloshare',
+            'AI Summarize — Bloshare',
+            'AI Summarize',
+            'manage_options',
+            'bloshare',
+            array( $this, 'render_ai_page' )
+        );
+
+        $this->social_hook = add_submenu_page(
+            'bloshare',
+            'Social Share — Bloshare',
+            'Social Share',
+            'manage_options',
+            'bloshare-social',
+            array( $this, 'render_social_page' )
+        );
+    }
+
+    public function register_settings() {
+        register_setting( 'bls_ai_group',     'bls_settings', array( $this, 'sanitize' ) );
+        register_setting( 'bls_social_group', 'bls_settings', array( $this, 'sanitize' ) );
+    }
+
+    public function enqueue_admin_assets( $hook ) {
+        $our_hooks = array( $this->page_hook, $this->social_hook );
+        if ( ! in_array( $hook, $our_hooks, true ) ) return;
+        wp_enqueue_style(  'bls-admin', BLS_URL . 'assets/admin.css',  array(), BLS_VERSION );
+        wp_enqueue_style(  'bls-front', BLS_URL . 'assets/front.css',  array(), BLS_VERSION );
+        wp_enqueue_script( 'bls-admin', BLS_URL . 'assets/admin.js',   array(), BLS_VERSION, true );
+    }
+
+    /* -----------------------------------------------------------------------
+     * Sanitize
+     * -------------------------------------------------------------------- */
+
+    public function sanitize( $input ) {
+        // Merge with existing saved settings so submitting one tab
+        // doesn't wipe the other tab's values.
+        $existing = get_option( 'bls_settings', array() );
+        if ( ! is_array( $existing ) ) $existing = array();
+        $input = is_array( $input ) ? $input : array();
+        $merged = array_merge( $existing, $input );
+
+        $d = self::defaults();
+        $clean = array();
+
+        // Networks
+        $clean['enabled_networks'] = array();
+        foreach ( self::get_network_definitions() as $key => $def ) {
+            $clean['enabled_networks'][ $key ] = ! empty( $merged['enabled_networks'][ $key ] ) ? 1 : 0;
+        }
+
+        // AI
+        $clean['ai_enabled']         = ! empty( $merged['ai_enabled'] ) ? 1 : 0;
+        $clean['ai_label']           = sanitize_text_field( isset( $merged['ai_label'] ) ? $merged['ai_label'] : $d['ai_label'] );
+        $clean['ai_prompt_template'] = sanitize_text_field( isset( $merged['ai_prompt_template'] ) ? $merged['ai_prompt_template'] : $d['ai_prompt_template'] );
+        if ( false === strpos( $clean['ai_prompt_template'], '{url}' ) ) {
+            $clean['ai_prompt_template'] .= ' {url}';
+        }
+        $ai_pos_input             = isset( $merged['ai_position'] ) ? $merged['ai_position'] : '';
+        $clean['ai_position']     = in_array( $ai_pos_input, array( 'before_content', 'after_content', 'after_meta', 'shortcode_only' ), true ) ? $ai_pos_input : $d['ai_position'];
+        $ai_style_input           = isset( $merged['ai_button_style'] ) ? $merged['ai_button_style'] : '';
+        $clean['ai_button_style'] = in_array( $ai_style_input, array( 'text', 'icon', 'icon_text' ), true ) ? $ai_style_input : $d['ai_button_style'];
+
+        // Social
+        $clean['social_enabled']      = ! empty( $merged['social_enabled'] ) ? 1 : 0;
+        $clean['social_label']        = sanitize_text_field( isset( $merged['social_label'] ) ? $merged['social_label'] : $d['social_label'] );
+        $social_pos_input             = isset( $merged['social_position'] ) ? $merged['social_position'] : '';
+        $clean['social_position']     = in_array( $social_pos_input, array( 'before_content', 'after_content', 'after_meta', 'shortcode_only' ), true ) ? $social_pos_input : $d['social_position'];
+        $social_style_input           = isset( $merged['social_button_style'] ) ? $merged['social_button_style'] : '';
+        $clean['social_button_style'] = in_array( $social_style_input, array( 'text', 'icon', 'icon_text' ), true ) ? $social_style_input : $d['social_button_style'];
+        $clean['show_copy_link']      = ! empty( $merged['show_copy_link'] ) ? 1 : 0;
+
+        // Shared
+        $clean['open_new_tab']  = ! empty( $merged['open_new_tab'] ) ? 1 : 0;
+        $shape_input            = isset( $merged['button_shape'] ) ? $merged['button_shape'] : '';
+        $clean['button_shape']  = in_array( $shape_input, array( 'pill', 'rounded', 'square' ), true ) ? $shape_input : $d['button_shape'];
+
+        return $clean;
+    }
+
+    /* -----------------------------------------------------------------------
+     * Shared page header
+     * -------------------------------------------------------------------- */
+
+    private function page_header( $active_tab ) {
+        // settings_errors() is the WP-approved way to show save confirmations
+        // after options.php processes the form. No direct $_GET access needed.
+        $saved = isset( $_GET['settings-updated'] ) && '1' === $_GET['settings-updated']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display flag set by WP options.php after nonce-verified save
+        ?>
+        <div class="wrap bls-settings-wrap">
+        <h1><span class="dashicons dashicons-share bls-title-icon"></span> Bloshare</h1>
+
+        <?php if ( $saved ) : ?>
+            <div class="notice notice-success is-dismissible"><p>Settings saved successfully.</p></div>
+        <?php endif; ?>
+
+        <nav class="nav-tab-wrapper bls-tabs">
+            <a href="<?php echo esc_url( admin_url( 'admin.php?page=bloshare' ) ); ?>"
+               class="nav-tab <?php echo 'ai' === $active_tab ? 'nav-tab-active' : ''; ?>">
+                🤖 AI Summarize
+            </a>
+            <a href="<?php echo esc_url( admin_url( 'admin.php?page=bloshare-social' ) ); ?>"
+               class="nav-tab <?php echo 'social' === $active_tab ? 'nav-tab-active' : ''; ?>">
+                📣 Social Share
+            </a>
+        </nav>
+        <?php
+    }
+
+    private function page_footer() {
+        echo '</div><!-- .bls-settings-wrap -->';
+    }
+
+    private function position_field( $name, $current_value, $group ) {
+        $options = array(
+            'before_content' => 'Before post content',
+            'after_meta'     => 'Right after post title / meta (top of post)',
+            'after_content'  => 'After post content (bottom of post)',
+            'shortcode_only' => 'Don\'t auto-insert — I\'ll place it manually with a shortcode',
+        );
+        echo '<select name="bls_settings[' . esc_attr( $name ) . ']">';
+        foreach ( $options as $val => $label ) {
+            echo '<option value="' . esc_attr( $val ) . '"' . selected( $current_value, $val, false ) . '>' . esc_html( $label ) . '</option>';
+        }
+        echo '</select>';
+    }
+
+    private function button_style_field( $name, $current_value, $context = 'social' ) {
+        if ( 'ai' === $context ) {
+            $options = array(
+                'text'      => 'Text only — e.g. "ChatGPT"',
+                'icon'      => 'Icon only — compact, no label',
+                'icon_text' => 'Icon + Text — shows both',
+            );
+        } else {
+            $options = array(
+                'text'      => 'Text only — e.g. "Facebook"',
+                'icon'      => 'Icon only — compact, no label',
+                'icon_text' => 'Icon + Text — shows both',
+            );
+        }
+        echo '<select name="bls_settings[' . esc_attr( $name ) . ']">';
+        foreach ( $options as $val => $label ) {
+            echo '<option value="' . esc_attr( $val ) . '"' . selected( $current_value, $val, false ) . '>' . esc_html( $label ) . '</option>';
+        }
+        echo '</select>';
+    }
+
+    private function shortcode_notice( $shortcode ) {
+        ?>
+        <div class="bls-notice bls-notice-warn">
+            <strong>⚠️ Avoid duplicates:</strong>
+            If this row is set to auto-insert (any option above except "shortcode only"), do <strong>not</strong> also paste
+            <code><?php echo esc_html( $shortcode ); ?></code> into the same post.
+            Using both at once will show the buttons twice. Pick one method per post.
+        </div>
+        <?php
+    }
+
+    /* -----------------------------------------------------------------------
+     * AI Summarize settings page
+     * -------------------------------------------------------------------- */
+
+    public function render_ai_page() {
+        if ( ! current_user_can( 'manage_options' ) ) return;
+        $s = $this->get_settings();
+        $networks = self::get_network_definitions();
+        $this->page_header( 'ai' );
+        ?>
+
+        <!-- Live preview -->
+        <div class="bls-preview-box">
+            <h3 style="margin:0 0 8px;">Live Preview</h3>
+            <p class="description" style="margin-bottom:12px;">Updates when you change options on this page.</p>
+            <div id="bls-preview-ai"><?php
+                $preview_settings = $s;
+                $preview_settings['social_enabled'] = 0; // AI tab: show AI row only
+                echo wp_kses( BLS_Render::preview_rows( $preview_settings ), BLS_Render::preview_kses() );
+            ?></div>
+        </div>
+
+        <form method="post" action="options.php">
+            <?php settings_fields( 'bls_ai_group' ); ?>
+
+            <!-- Enable/disable -->
+            <h2 class="bls-section-title">AI Summarize Row</h2>
+            <table class="form-table" role="presentation">
+                <tr>
+                    <th>Enable AI Summarize</th>
+                    <td>
+                        <label class="bls-toggle-label">
+                            <input type="checkbox" name="bls_settings[ai_enabled]" value="1" id="bls-ai-enabled" <?php checked( $s['ai_enabled'], 1 ); ?> />
+                            <span>Show the "Summarize with" row on every post</span>
+                        </label>
+                        <p class="description">Turn this off if you don't want AI summarize buttons anywhere on your site.</p>
+                    </td>
+                </tr>
+            </table>
+
+            <div id="bls-ai-fields" <?php echo $s['ai_enabled'] ? '' : 'style="opacity:.45;pointer-events:none;"'; ?>>
+
+                <!-- Position -->
+                <h2 class="bls-section-title">Placement</h2>
+                <table class="form-table" role="presentation">
+                    <tr>
+                        <th>Position on post</th>
+                        <td>
+                            <?php $this->position_field( 'ai_position', $s['ai_position'], 'ai' ); ?>
+                            <p class="description">
+                                Choose where the AI Summarize row appears on each post.<br>
+                                "Before post content" is the default — readers see it before they start reading, which is ideal for summarizing.
+                            </p>
+                            <?php $this->shortcode_notice( '[bls_ai_buttons]' ); ?>
+                        </td>
+                    </tr>
+                </table>
+
+                <!-- Appearance -->
+                <h2 class="bls-section-title">Appearance</h2>
+                <table class="form-table" role="presentation">
+                    <tr>
+                        <th>Button style</th>
+                        <td>
+                            <?php $this->button_style_field( 'ai_button_style', $s['ai_button_style'], 'ai' ); ?>
+                            <p class="description">AI tools are best with text labels — most people don't recognise AI logos at a glance.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Button shape</th>
+                        <td>
+                            <select name="bls_settings[button_shape]">
+                                <option value="pill"    <?php selected( $s['button_shape'], 'pill' ); ?>>Pill (fully rounded)</option>
+                                <option value="rounded" <?php selected( $s['button_shape'], 'rounded' ); ?>>Rounded corners</option>
+                                <option value="square"  <?php selected( $s['button_shape'], 'square' ); ?>>Square corners</option>
+                            </select>
+                            <p class="description">Applies to both AI and Social rows.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Row label</th>
+                        <td>
+                            <input type="text" class="regular-text" name="bls_settings[ai_label]" value="<?php echo esc_attr( $s['ai_label'] ); ?>" />
+                            <p class="description">The small heading shown above the buttons. Default: "Summarize with"</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>AI prompt text</th>
+                        <td>
+                            <input type="text" class="large-text" name="bls_settings[ai_prompt_template]" value="<?php echo esc_attr( $s['ai_prompt_template'] ); ?>" />
+                            <p class="description">
+                                The instruction sent to each AI tool when a reader clicks a button.<br>
+                                <strong>Must include <code>{url}</code></strong> — this is replaced with the post's link automatically.<br>
+                                Example: <em>Analyze and summarize the key insights from {url}</em>
+                            </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Open in new tab</th>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="bls_settings[open_new_tab]" value="1" <?php checked( $s['open_new_tab'], 1 ); ?> />
+                                Open all links in a new browser tab
+                            </label>
+                            <p class="description">Recommended — keeps your readers on your site while they use the AI tool.</p>
+                        </td>
+                    </tr>
+                </table>
+
+                <!-- AI tool toggles -->
+                <h2 class="bls-section-title">AI Tools</h2>
+                <p class="description" style="margin-bottom:12px;">Choose which AI tools to show. Uncheck any you don't want to display.</p>
+                <table class="form-table" role="presentation">
+                    <?php foreach ( $networks as $key => $def ) :
+                        if ( 'ai' !== $def['group'] ) continue; ?>
+                    <tr>
+                        <th><?php echo esc_html( $def['label'] ); ?></th>
+                        <td>
+                            <label>
+                                <input type="checkbox"
+                                    name="bls_settings[enabled_networks][<?php echo esc_attr( $key ); ?>]"
+                                    value="1"
+                                    <?php checked( ! empty( $s['enabled_networks'][ $key ] ), true ); ?> />
+                                Show <?php echo esc_html( $def['label'] ); ?> button
+                            </label>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                </table>
+
+            </div><!-- #kas-ai-fields -->
+
+            <!-- Shortcode reference -->
+            <div class="bls-shortcode-box">
+                <h3>Shortcode</h3>
+                <p>To place the AI Summarize row at a specific spot inside a post, use:</p>
+                <code>[bls_ai_buttons]</code>
+                <p class="description">Paste this inside the post editor wherever you want the row to appear. <strong>Remove the position setting above to "shortcode only" first</strong> to avoid showing buttons twice.</p>
+            </div>
+
+            <?php submit_button( 'Save AI Settings' ); ?>
+        </form>
+
+        <?php
+        $this->page_footer();
+    }
+
+    /* -----------------------------------------------------------------------
+     * Social Share settings page
+     * -------------------------------------------------------------------- */
+
+    public function render_social_page() {
+        if ( ! current_user_can( 'manage_options' ) ) return;
+        $s = $this->get_settings();
+        $networks = self::get_network_definitions();
+        $this->page_header( 'social' );
+        ?>
+
+        <!-- Live preview -->
+        <div class="bls-preview-box">
+            <h3 style="margin:0 0 8px;">Live Preview</h3>
+            <p class="description" style="margin-bottom:12px;">Updates when you change options on this page.</p>
+            <div id="bls-preview-social"><?php
+                $preview_settings = $s;
+                $preview_settings['ai_enabled'] = 0; // Social tab: show social row only
+                echo wp_kses( BLS_Render::preview_rows( $preview_settings ), BLS_Render::preview_kses() );
+            ?></div>
+        </div>
+
+        <form method="post" action="options.php">
+            <?php settings_fields( 'bls_social_group' ); ?>
+
+            <!-- Enable/disable -->
+            <h2 class="bls-section-title">Social Share Row</h2>
+            <table class="form-table" role="presentation">
+                <tr>
+                    <th>Enable Social Share</th>
+                    <td>
+                        <label class="bls-toggle-label">
+                            <input type="checkbox" name="bls_settings[social_enabled]" value="1" id="bls-social-enabled" <?php checked( $s['social_enabled'], 1 ); ?> />
+                            <span>Show the "Share this article" row on every post</span>
+                        </label>
+                        <p class="description">Turn this off if you don't want social share buttons anywhere on your site.</p>
+                    </td>
+                </tr>
+            </table>
+
+            <div id="bls-social-fields" <?php echo $s['social_enabled'] ? '' : 'style="opacity:.45;pointer-events:none;"'; ?>>
+
+                <!-- Position -->
+                <h2 class="bls-section-title">Placement</h2>
+                <table class="form-table" role="presentation">
+                    <tr>
+                        <th>Position on post</th>
+                        <td>
+                            <?php $this->position_field( 'social_position', $s['social_position'], 'social' ); ?>
+                            <p class="description">
+                                Choose where the Social Share row appears on each post.<br>
+                                "After post content" is the default — readers share after finishing the article, which gets better click-through.
+                            </p>
+                            <?php $this->shortcode_notice( '[bls_social_buttons]' ); ?>
+                        </td>
+                    </tr>
+                </table>
+
+                <!-- Appearance -->
+                <h2 class="bls-section-title">Appearance</h2>
+                <table class="form-table" role="presentation">
+                    <tr>
+                        <th>Button style</th>
+                        <td>
+                            <?php $this->button_style_field( 'social_button_style', $s['social_button_style'], 'social' ); ?>
+                            <p class="description">Social networks have well-known icons — "Icon only" saves space on mobile; "Icon + Text" is clearest for all users.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Row label</th>
+                        <td>
+                            <input type="text" class="regular-text" name="bls_settings[social_label]" value="<?php echo esc_attr( $s['social_label'] ); ?>" />
+                            <p class="description">The small heading shown above the share buttons. Default: "Share this article"</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Copy Link button</th>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="bls_settings[show_copy_link]" value="1" <?php checked( $s['show_copy_link'], 1 ); ?> />
+                                Show a "Copy Link" button alongside the share buttons
+                            </label>
+                            <p class="description">Lets readers copy the post URL to their clipboard with one click. Useful for messaging apps not listed above.</p>
+                        </td>
+                    </tr>
+                </table>
+
+                <!-- Social network toggles -->
+                <h2 class="bls-section-title">Social Networks</h2>
+                <p class="description" style="margin-bottom:12px;">Choose which platforms to show. Uncheck any that don't suit your audience.</p>
+                <table class="form-table" role="presentation">
+                    <?php foreach ( $networks as $key => $def ) :
+                        if ( 'social' !== $def['group'] ) continue;
+                        $allowed_svg = array(
+                            'svg'  => array( 'viewbox' => true, 'fill' => true, 'xmlns' => true, 'aria-hidden' => true ),
+                            'path' => array( 'd' => true ),
+                        );
+                        ?>
+                    <tr>
+                        <th>
+                            <span style="display:inline-flex;align-items:center;gap:6px;">
+                                <span class="bls-network-icon" style="color:<?php echo esc_attr( $def['color'] ); ?>;width:18px;height:18px;display:inline-flex;">
+                                    <?php echo wp_kses( $def['icon'], $allowed_svg ); ?>
+                                </span>
+                                <?php echo esc_html( $def['label'] ); ?>
+                            </span>
+                        </th>
+                        <td>
+                            <label>
+                                <input type="checkbox"
+                                    name="bls_settings[enabled_networks][<?php echo esc_attr( $key ); ?>]"
+                                    value="1"
+                                    <?php checked( ! empty( $s['enabled_networks'][ $key ] ), true ); ?> />
+                                Show <?php echo esc_html( $def['label'] ); ?> button
+                            </label>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                </table>
+
+            </div><!-- #kas-social-fields -->
+
+            <!-- Shortcode reference -->
+            <div class="bls-shortcode-box">
+                <h3>Shortcode</h3>
+                <p>To place the Social Share row at a specific spot inside a post, use:</p>
+                <code>[bls_social_buttons]</code>
+                <p class="description">Paste this inside the post editor wherever you want the share row to appear. <strong>Set the position above to "shortcode only" first</strong> to avoid showing buttons twice.</p>
+            </div>
+
+            <?php submit_button( 'Save Social Settings' ); ?>
+        </form>
+
+        <?php
+        $this->page_footer();
+    }
+}
