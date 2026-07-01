@@ -29,7 +29,6 @@ require_once KAS_PATH . 'includes/class-bls-loader.php';
  * Boot the plugin.
  */
 function bls_init_plugin() {
-    load_plugin_textdomain( 'bloshare', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
     BLS_Settings::instance();
     BLS_Loader::instance();
 }
